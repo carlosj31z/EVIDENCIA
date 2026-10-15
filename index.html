@@ -1,0 +1,291 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>FASC-205 Evidencias CC</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap">
+<style>
+/* Layout: barra superior fija + tabla tipo Excel; panel lateral con formulario, evidencias y vista previa del FASC-205 */
+:root{
+  --bg:#eef1f4; --surface:#ffffff; --surface-2:#f6f8fa; --fg:#18202a; --muted:#5d6874; --line:#d9dee5; --line-strong:#b9c1cb;
+  --accent:#b5162b; --accent-fg:#ffffff; --accent-weak:#fbe9eb;
+  --ok:#1d7448; --ok-weak:#e3f3ea; --warn:#9a5b00; --warn-weak:#fdf1dc; --info:#1c5a9e; --info-weak:#e4eefa; --neutral-weak:#eceff3;
+  --shadow:0 10px 30px rgba(20,30,45,.18);
+  --font:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#12161b; --surface:#1a2027; --surface-2:#212831; --fg:#e7ebf0; --muted:#9aa5b1; --line:#2e3742; --line-strong:#46515e;
+  --accent:#e2485b; --accent-fg:#ffffff; --accent-weak:#3a1e23;
+  --ok:#5cc58f; --ok-weak:#173528; --warn:#e6a64a; --warn-weak:#3a2c14; --info:#7fb2ec; --info-weak:#1a2c42; --neutral-weak:#262e38;
+  --shadow:0 10px 30px rgba(0,0,0,.5); color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#12161b; --surface:#1a2027; --surface-2:#212831; --fg:#e7ebf0; --muted:#9aa5b1; --line:#2e3742; --line-strong:#46515e;
+  --accent:#e2485b; --accent-fg:#ffffff; --accent-weak:#3a1e23;
+  --ok:#5cc58f; --ok-weak:#173528; --warn:#e6a64a; --warn-weak:#3a2c14; --info:#7fb2ec; --info-weak:#1a2c42; --neutral-weak:#262e38;
+  --shadow:0 10px 30px rgba(0,0,0,.5); color-scheme:dark}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{height:100%}
+body{margin:0;background:var(--bg);color:var(--fg);font:14px/1.45 var(--font);display:flex;flex-direction:column}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.mono{font-family:var(--mono);font-variant-numeric:tabular-nums}
+
+/* Barra superior */
+.top{background:var(--surface);border-bottom:1px solid var(--line);padding-block:12px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:flex;flex-wrap:wrap;gap:12px 20px;align-items:center}
+.brand{display:flex;flex-direction:column;min-width:0}
+.brand b{font-size:17px;letter-spacing:.01em}
+.brand span{color:var(--muted);font-size:12.5px}
+.code-tag{font-family:var(--mono);font-size:11.5px;background:var(--accent);color:var(--accent-fg);padding:2px 6px;border-radius:3px;margin-right:8px;vertical-align:2px}
+.tools{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-left:auto}
+.search{position:relative}
+.search input{width:min(280px,70vw);padding:7px 10px 7px 30px;border:1px solid var(--line-strong);border-radius:6px;background:var(--surface)}
+.search svg{position:absolute;left:9px;top:50%;transform:translateY(-50%);width:14px;height:14px;stroke:var(--muted)}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:7px 12px;border-radius:6px;border:1px solid var(--line-strong);background:var(--surface);font-weight:500;white-space:nowrap}
+.btn:hover{background:var(--surface-2)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-fg)}
+.btn.primary:hover{filter:brightness(1.07)}
+.btn.ghost{border-color:transparent;background:transparent}
+.btn:disabled{opacity:.55;cursor:not-allowed}
+.btn svg{width:15px;height:15px}
+.mode{font-size:12px;padding:3px 8px;border-radius:99px;font-weight:600}
+.mode.cloud{background:var(--ok-weak);color:var(--ok)}
+.mode.local{background:var(--warn-weak);color:var(--warn)}
+
+.status-bar{padding-block:8px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:flex;flex-wrap:wrap;gap:8px 16px;align-items:center;font-size:13px;color:var(--muted)}
+.status-bar strong{color:var(--fg)}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{display:inline-flex;align-items:center;gap:6px;background:var(--info-weak);color:var(--info);border-radius:99px;padding:2px 4px 2px 10px;font-size:12.5px;font-weight:500}
+.chip button{border:0;background:transparent;color:inherit;width:20px;height:20px;border-radius:50%;line-height:1}
+.chip button:hover{background:rgba(0,0,0,.08)}
+.toggle{display:inline-flex;gap:6px;align-items:center;cursor:pointer}
+.notice{margin-inline:max(16px,env(safe-area-inset-left,0px)) max(16px,env(safe-area-inset-right,0px));margin-bottom:8px;padding:8px 12px;border-radius:6px;font-size:13px;background:var(--warn-weak);color:var(--warn)}
+.notice.ok{background:var(--ok-weak);color:var(--ok)}
+.notice.err{background:var(--accent-weak);color:var(--accent)}
+
+/* Tabla */
+.table-wrap{flex:1;min-height:0;overflow:auto;margin-inline:max(16px,env(safe-area-inset-left,0px)) max(16px,env(safe-area-inset-right,0px));margin-bottom:max(16px,env(safe-area-inset-bottom,0px));background:var(--surface);border:1px solid var(--line);border-radius:8px}
+table.grid{border-collapse:separate;border-spacing:0;width:100%;min-width:1180px;font-size:13px}
+.grid th{position:sticky;top:0;z-index:2;background:var(--surface-2);text-align:left;font-weight:600;font-size:12px;letter-spacing:.02em;color:var(--muted);border-bottom:1px solid var(--line-strong);padding:0;white-space:nowrap}
+.th-in{display:flex;align-items:center;gap:4px;padding:8px 6px 8px 10px}
+.th-in span{flex:1}
+.fbtn{width:22px;height:22px;border:1px solid var(--line-strong);border-radius:4px;background:var(--surface);display:inline-grid;place-items:center;padding:0;flex:none}
+.fbtn svg{width:12px;height:12px;stroke:var(--muted);fill:none}
+.fbtn.on{background:var(--info);border-color:var(--info)}
+.fbtn.on svg{stroke:#fff}
+.grid td{padding:8px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+.grid tbody tr{cursor:pointer}
+.grid tbody tr:hover td{background:var(--surface-2)}
+.grid tbody tr.sel td{background:var(--info-weak)}
+.grid tbody tr.inactive td{opacity:.55}
+.c-desc{min-width:320px;max-width:460px}
+.c-desc div{display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.c-com{max-width:220px;color:var(--muted)}
+.pill{display:inline-block;padding:1px 8px;border-radius:99px;font-size:12px;font-weight:600;white-space:nowrap}
+.p-ok{background:var(--ok-weak);color:var(--ok)}
+.p-warn{background:var(--warn-weak);color:var(--warn)}
+.p-info{background:var(--info-weak);color:var(--info)}
+.p-bad{background:var(--accent-weak);color:var(--accent)}
+.p-neu{background:var(--neutral-weak);color:var(--muted)}
+.empty{padding:48px 20px;text-align:center;color:var(--muted)}
+.empty b{display:block;color:var(--fg);font-size:16px;margin-bottom:6px}
+
+/* Popover filtro estilo Excel */
+.pop{position:fixed;z-index:50;width:290px;max-width:calc(100vw - 24px);background:var(--surface);border:1px solid var(--line-strong);border-radius:8px;box-shadow:var(--shadow);display:flex;flex-direction:column;font-size:13px}
+.pop .sorts{display:flex;flex-direction:column;border-bottom:1px solid var(--line);padding:6px}
+.pop .sorts button{text-align:left;border:0;background:transparent;padding:6px 8px;border-radius:4px}
+.pop .sorts button:hover{background:var(--surface-2)}
+.pop .sorts button.cur{font-weight:600;color:var(--info)}
+.pop .fsearch{padding:8px 10px 4px}
+.pop .fsearch input{width:100%;padding:6px 8px;border:1px solid var(--line-strong);border-radius:5px;background:var(--surface)}
+.pop .flist{max-height:260px;overflow:auto;padding:4px 10px 8px;border-bottom:1px solid var(--line)}
+.pop label{display:flex;align-items:flex-start;gap:8px;padding:3px 0;cursor:pointer}
+.pop label span{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pop label em{font-style:normal;color:var(--muted);font-size:11.5px}
+.pop .fact{display:flex;gap:8px;justify-content:space-between;padding:8px 10px}
+
+/* Panel lateral */
+.scrim{position:fixed;inset:0;background:rgba(10,16,24,.38);z-index:30}
+.drawer{position:fixed;top:0;right:0;bottom:0;width:min(1180px,100%);background:var(--bg);z-index:31;display:flex;flex-direction:column;box-shadow:var(--shadow)}
+.d-head{background:var(--surface);border-bottom:1px solid var(--line);padding-top:max(12px,env(safe-area-inset-top,0px));padding-bottom:12px;padding-left:20px;padding-right:max(16px,env(safe-area-inset-right,0px));display:flex;gap:12px;align-items:flex-start}
+.d-head h2{margin:0;font-size:18px;text-wrap:balance}
+.d-head p{margin:2px 0 0;color:var(--muted);font-size:13px}
+.d-head .x{margin-left:auto}
+.d-body{flex:1;min-height:0;overflow:auto;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:16px;padding:16px max(16px,env(safe-area-inset-right,0px)) 16px 20px}
+@media (max-width:900px){.d-body{grid-template-columns:minmax(0,1fr);padding-left:16px}}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:14px 16px;display:flex;flex-direction:column;gap:12px;min-width:0}
+.card h3{margin:0;font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted)}
+.meta{display:grid;grid-template-columns:auto 1fr;gap:4px 14px;font-size:13px}
+.meta dt{color:var(--muted)}
+.meta dd{margin:0;min-width:0;overflow-wrap:anywhere}
+.fields{display:grid;grid-template-columns:1fr 1fr;gap:10px 14px}
+.field{display:flex;flex-direction:column;gap:4px;min-width:0}
+.field.full{grid-column:1/-1}
+.field label,.field .lbl{font-size:12px;font-weight:600;color:var(--muted)}
+.field input,.field select,.field textarea{padding:7px 9px;border:1px solid var(--line-strong);border-radius:6px;background:var(--surface);width:100%}
+.field textarea{min-height:90px;resize:vertical;line-height:1.4}
+.seg{display:inline-flex;border:1px solid var(--line-strong);border-radius:6px;overflow:hidden;width:max-content}
+.seg button{border:0;background:var(--surface);padding:6px 14px;font-weight:600}
+.seg button+button{border-left:1px solid var(--line-strong)}
+.seg button.on{background:var(--accent);color:var(--accent-fg)}
+.hint{font-size:12px;color:var(--muted)}
+.drop{border:2px dashed var(--line-strong);border-radius:8px;padding:18px;text-align:center;color:var(--muted);background:var(--surface-2);cursor:pointer}
+.drop.over,.drop:focus{border-color:var(--accent);color:var(--fg);outline:none}
+.drop b{color:var(--fg)}
+.thumbs{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
+.thumb{border:1px solid var(--line);border-radius:6px;overflow:hidden;background:var(--surface-2);display:flex;flex-direction:column}
+.thumb .im{aspect-ratio:4/3;display:grid;place-items:center;background:repeating-conic-gradient(var(--neutral-weak) 0 25%,transparent 0 50%) 0 0/14px 14px;cursor:zoom-in}
+.thumb img{max-width:100%;max-height:100%;display:block}
+.thumb .tb{display:flex;gap:2px;justify-content:space-between;align-items:center;padding:4px;border-top:1px solid var(--line);background:var(--surface)}
+.thumb .tb span{font-size:11.5px;color:var(--muted);padding-left:4px}
+.ib{border:0;background:transparent;width:28px;height:28px;border-radius:5px;display:inline-grid;place-items:center;padding:0}
+.ib:hover{background:var(--surface-2)}
+.ib svg{width:15px;height:15px;stroke:currentColor;fill:none;stroke-width:2}
+.ib.danger{color:var(--accent)}
+.busy{font-size:12.5px;color:var(--info)}
+.d-foot{background:var(--surface);border-top:1px solid var(--line);padding-top:12px;padding-bottom:max(12px,env(safe-area-inset-bottom,0px));padding-left:20px;padding-right:max(16px,env(safe-area-inset-right,0px));display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.fname{font-family:var(--mono);font-size:12.5px;color:var(--muted);min-width:0;overflow-wrap:anywhere;flex:1}
+
+/* Vista previa del formato (réplica de la hoja impresa A4) */
+.pv-wrap{display:flex;flex-direction:column;gap:14px;align-items:center}
+.pv-label{align-self:flex-start;font-size:12px;color:var(--muted)}
+.paper-box{width:100%;max-width:560px;box-shadow:0 2px 10px rgba(0,0,0,.15);background:#fff;overflow:hidden;position:relative}
+.paper{width:794px;height:1123px;background:#fff;color:#000;position:absolute;top:0;left:0;transform-origin:0 0;font-family:Arial,Helvetica,sans-serif}
+.paper .hdr{position:absolute;left:30px;top:30px;font-size:11px;font-weight:700;line-height:1.15}
+.paper .hdr img{display:block;width:170px;height:auto;margin-bottom:2px}
+.paper .ftr{position:absolute;right:30px;bottom:30px;font-size:10.5px}
+.sheet{position:absolute;transform-origin:0 0}
+.sheet .c{position:absolute;display:flex;align-items:center;overflow:hidden;font-size:13px;white-space:nowrap}
+.sheet .frame{position:absolute;border:1.5px solid #000}
+.sheet .hl{position:absolute;border-top:3px double #000;height:0}
+.sheet .box{border:1px solid #000;justify-content:center}
+.sheet .grey{background:#bfbfbf}
+.sheet img{position:absolute;display:block}
+.sheet .act{white-space:pre-wrap;align-items:center;font-family:Calibri,Carlito,"Segoe UI",Arial,sans-serif;font-weight:700;font-size:14.6px;line-height:1.2;text-align:justify;padding:0 2px}
+
+/* Editor de imágenes */
+.editor{position:fixed;inset:0;z-index:60;background:rgba(8,12,18,.97);display:flex;flex-direction:column;color:#e9edf2}
+.ed-bar{display:flex;flex-wrap:wrap;gap:6px;align-items:center;padding-top:max(10px,env(safe-area-inset-top,0px));padding-bottom:10px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));background:#151b23;border-bottom:1px solid #2b3440}
+.ed-bar .sep{width:1px;height:24px;background:#334050;margin:0 6px}
+.eb{display:inline-flex;align-items:center;gap:6px;border:1px solid #3a4655;background:#1e2630;color:#e9edf2;border-radius:6px;padding:6px 10px;font-size:13px}
+.eb:hover{background:#26303c}
+.eb.on{background:#e2485b;border-color:#e2485b}
+.eb svg{width:15px;height:15px;stroke:currentColor;fill:none;stroke-width:2}
+.eb.save{background:#e2485b;border-color:#e2485b;font-weight:600}
+.ed-stage{flex:1;min-height:0;display:grid;place-items:center;padding:16px;position:relative;overflow:hidden}
+.ed-stage canvas{background:repeating-conic-gradient(#2a323c 0 25%,#20272f 0 50%) 0 0/16px 16px;touch-action:none;box-shadow:0 0 0 1px #3a4655}
+.ed-tip{font-size:12.5px;color:#aab4c0;padding:0 max(16px,env(safe-area-inset-right,0px)) 10px max(16px,env(safe-area-inset-left,0px))}
+.color-dot{width:18px;height:18px;border-radius:50%;border:2px solid #fff;padding:0}
+
+.toast{position:fixed;left:50%;bottom:max(24px,calc(env(safe-area-inset-bottom,0px) + 16px));transform:translateX(-50%);background:var(--fg);color:var(--bg);padding:9px 16px;border-radius:6px;z-index:80;font-size:13.5px;box-shadow:var(--shadow)}
+@media (max-width:600px){.fields{grid-template-columns:1fr}.tools{margin-left:0}}
+@media (prefers-reduced-motion:no-preference){.drawer{animation:slide .18s ease-out}@keyframes slide{from{transform:translateX(24px);opacity:.6}}}
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="brand">
+    <b><span class="code-tag">FASC-205-03</span>Evidencia visual · Controles de cambio</b>
+    <span>Selecciona una acción, pega las imágenes y descarga el formato listo para imprimir.</span>
+  </div>
+  <div class="tools">
+    <span id="mode" class="mode"></span>
+    <label class="search" for="q"><svg viewBox="0 0 24 24" fill="none" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+      <input id="q" type="search" placeholder="Buscar en todas las columnas" autocomplete="off"></label>
+    <button class="btn" id="btnImport" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v12m0 0-4-4m4 4 4-4M4 17v3h16v-3"/></svg>Importar Excel de CC</button>
+    <input id="fileImport" type="file" accept=".xlsx,.xls" hidden>
+  </div>
+</header>
+<div id="notice" class="notice" hidden></div>
+<div class="status-bar">
+  <span id="count"></span>
+  <div class="chips" id="chips"></div>
+  <button class="btn ghost" id="btnClear" type="button" hidden>Borrar todos los filtros</button>
+  <label class="toggle" for="showInactive"><input type="checkbox" id="showInactive"> Mostrar acciones que ya no figuran en el Excel</label>
+</div>
+<div class="table-wrap" id="tableWrap">
+  <table class="grid" id="grid"><thead><tr id="thead"></tr></thead><tbody id="tbody"></tbody></table>
+  <div class="empty" id="empty" hidden></div>
+</div>
+
+<div class="scrim" id="scrim" hidden></div>
+<aside class="drawer" id="drawer" hidden aria-modal="true" role="dialog" aria-labelledby="dTitle">
+  <div class="d-head">
+    <div style="min-width:0">
+      <h2 id="dTitle"></h2>
+      <p id="dSub"></p>
+    </div>
+    <button class="btn x" id="btnClose" type="button">Cerrar</button>
+  </div>
+  <div class="d-body">
+    <div style="display:flex;flex-direction:column;gap:16px;min-width:0">
+      <section class="card">
+        <h3>Datos del control de cambio</h3>
+        <dl class="meta" id="meta"></dl>
+      </section>
+      <section class="card">
+        <h3>Llenado del formato</h3>
+        <div class="fields">
+          <div class="field"><label for="fSeccion">Sección</label><input id="fSeccion" type="text"></div>
+          <div class="field"><span class="lbl">Planta</span><div class="seg" id="fPlanta"><button type="button" data-v="1">1</button><button type="button" data-v="2">2</button></div></div>
+          <div class="field"><label for="fAnexo">Anexo</label><input id="fAnexo" type="text"></div>
+          <div class="field"><label for="fPorPag">Imágenes por página</label>
+            <select id="fPorPag"><option value="">Automático</option><option value="1">1 por página</option><option value="2">2 por página</option><option value="4">4 por página</option></select></div>
+          <div class="field full"><label for="fTexto">Texto de la acción</label><textarea id="fTexto"></textarea>
+            <span class="hint">Se toma del Excel. Puedes ajustarlo; <button type="button" class="btn ghost" id="btnResetTexto" style="padding:0 2px;font-size:12px;color:var(--info)">restablecer texto original</button></span></div>
+        </div>
+      </section>
+      <section class="card">
+        <h3>Evidencias</h3>
+        <div class="drop" id="drop" tabindex="0"><b>Pega con Ctrl+V</b>, arrastra imágenes aquí o haz clic para elegirlas</div>
+        <input type="file" id="fileImg" accept="image/*" multiple hidden>
+        <div class="busy" id="busy" hidden></div>
+        <div class="thumbs" id="thumbs"></div>
+      </section>
+    </div>
+    <section class="card">
+      <h3>Vista previa del formato</h3>
+      <div class="pv-wrap" id="preview"></div>
+    </section>
+  </div>
+  <div class="d-foot">
+    <span class="fname" id="fname"></span>
+    <button class="btn primary" id="btnDownload" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v12m0 0-4-4m4 4 4-4M4 17v3h16v-3"/></svg>Descargar FASC-205 (.xlsx)</button>
+  </div>
+</aside>
+
+<div class="editor" id="editor" hidden>
+  <div class="ed-bar">
+    <button class="eb" type="button" data-ed="rotl" title="Rotar a la izquierda"><svg viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/></svg>Rotar</button>
+    <button class="eb" type="button" data-ed="rotr" title="Rotar a la derecha"><svg viewBox="0 0 24 24"><path d="M21 12a9 9 0 1 1-3-6.7L21 8"/><path d="M21 3v5h-5"/></svg>Rotar</button>
+    <span class="sep"></span>
+    <button class="eb" type="button" data-tool="crop"><svg viewBox="0 0 24 24"><path d="M6 2v14a2 2 0 0 0 2 2h14"/><path d="M18 22V8a2 2 0 0 0-2-2H2"/></svg>Recortar</button>
+    <button class="eb" type="button" data-tool="rect"><svg viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="14" rx="1"/></svg>Resaltar</button>
+    <button class="eb" type="button" data-tool="arrow"><svg viewBox="0 0 24 24"><path d="M5 19 19 5M9 5h10v10"/></svg>Flecha</button>
+    <span id="edColors" style="display:inline-flex;gap:6px;align-items:center;margin-left:4px"></span>
+    <span class="sep"></span>
+    <button class="eb" type="button" data-ed="undo"><svg viewBox="0 0 24 24"><path d="M9 14 4 9l5-5"/><path d="M4 9h11a5 5 0 0 1 0 10h-3"/></svg>Deshacer</button>
+    <button class="eb" type="button" data-ed="orig">Restaurar original</button>
+    <span style="flex:1"></span>
+    <button class="eb" type="button" data-ed="cancel">Cancelar</button>
+    <button class="eb save" type="button" data-ed="save">Guardar cambios</button>
+  </div>
+  <div class="ed-tip" id="edTip">Elige una herramienta y arrastra sobre la imagen.</div>
+  <div class="ed-stage" id="edStage"><canvas id="edCanvas"></canvas></div>
+</div>
+
+<div class="toast" id="toast" hidden></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+<script src="config.js"></script>
+<script src="assets/template.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
