@@ -307,10 +307,10 @@ function seccionDe(a){ return a.seccion ?? (a.area || ''); }
 function fileName(a){ return `FASC-205-03 EVIDENCIA VISUAL ${a.codigo_cc} ACCION ${a.num_accion}.xlsx`.replace(/[\\/:*?"<>|\r\n]+/g,' ').replace(/\s{2,}/g,' '); }
 
 /* Altura de la fila 16 según el largo del texto; lo que crece se descuenta del bloque de evidencias para que siga entrando en una hoja A4. */
-function heights(texto){
+function heights(texto, extra=0){
   const CPL = 84; let lines = 0;
   for (const p of String(texto).split('\n')) lines += Math.max(1, Math.ceil(p.length / CPL));
-  const total = Math.max(51.75, q75(lines*15 + 9));
+  const total = Math.max(51.75, q75(lines*15 + 9)) + extra;   // extra: baja el texto cuando hay pocas imágenes
   const r16 = total - 12;
   const block = [15, ...Array(31).fill(15), 52.5, 0.75];   // filas 18, 19..49, 50, 51
   let excess = r16 - 39.75, i = 32;
@@ -319,7 +319,7 @@ function heights(texto){
 }
 /* Distribuye las imágenes en páginas y las centra en su espacio. Coordenadas relativas al borde izq. de la col A y al borde sup. de la fila 18 del bloque. */
 function computeLayout(a, imgs){
-  const {r16, block} = heights(accionTexto(a));
+  const {r16, block} = heights(accionTexto(a), imgs.length <= 2 ? 21 : 0);
   const rowPx = block.map(pt2px);
   const PAD = 8, GAP = 10;
   const box = {x:PAD, y:PAD, w:SHEET_W - 2*PAD, h:rowPx.slice(0,33).reduce((s,v)=>s+v,0) - 2*PAD};
@@ -361,8 +361,16 @@ async function buildXlsx(a, imgs){
   ss = ss.replace(/<si>[\s\S]*?<\/si>/g, m => { const i=k++; return i===11 ? siXml(a.anexo||'-') : i===13 ? siXml(a.codigo_cc) : i===14 ? siXml(seccionDe(a)) : i===15 ? siXml(accionTexto(a)) : m; });
   zip.file('xl/sharedStrings.xml', ss);
 
+  // Estilo del texto de la acción: Calibri 11 normal (sin negrita), alineado abajo
+  let st = await zip.file('xl/styles.xml').async('string');
+  const nXf = +st.match(/<cellXfs count="(\d+)">/)[1];
+  st = st.replace(/<cellXfs count="\d+">/, `<cellXfs count="${nXf+1}">`)
+         .replace('</cellXfs>', '<xf numFmtId="0" fontId="0" fillId="0" borderId="28" xfId="0" applyBorder="1" applyAlignment="1"><alignment horizontal="justify" vertical="bottom" wrapText="1"/></xf></cellXfs>');
+  zip.file('xl/styles.xml', st);
+
   // Hoja
   let sh = await zip.file('xl/worksheets/sheet1.xml').async('string');
+  sh = sh.replace('<c r="A16" s="35" t="s">', `<c r="A16" s="${nXf}" t="s">`);
   const planta = +a.planta || 2;
   sh = sh.replace(/<c r="J6" s="3" t="s"><v>\d+<\/v><\/c>/, `<c r="J6" s="3" t="s"><v>${planta===1?0:10}</v></c>`)
          .replace(/<c r="J8" s="3" t="s"><v>\d+<\/v><\/c>/, `<c r="J8" s="3" t="s"><v>${planta===2?0:10}</v></c>`);
