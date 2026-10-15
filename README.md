@@ -20,7 +20,7 @@ Las políticas permiten leer/escribir con la anon key: cualquiera que tenga el l
 
 ## Archivos
 - `index.html` · interfaz y estilos
-- `app.js` · lógica (importación, filtros, editor, vista previa, generación del .xlsx)
-- `assets/template.js` · plantilla FASC-205-03 original y logo (base64)
+- `app.js` · lógica y plantilla (importación, filtros, editor, vista previa, generación del .xlsx)
+- (la plantilla FASC-205-03 y el logo van incluidos dentro de `app.js`)
 - `config.js` · conexión a Supabase
 - `supabase/setup.sql` · tablas, bucket y políticas
