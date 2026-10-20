@@ -108,10 +108,23 @@ function pillClass(v){
 }
 
 /* ---------- Filtros / orden ---------- */
+/* Términos separados por coma: "RMD, LM" = cualquiera de ellos */
+const termsOf = q => String(q||'').split(/[,;|]/).map(t=>norm(t)).filter(Boolean);
+const hasAny = (label, terms) => { const n = norm(label); return terms.some(t => n.includes(t)); };
+/* Regla de filtro: {keys:Set} (valores marcados) o {mode:'in'|'out', terms:[], off:Set} (contiene / no contiene) */
+function ruleMatch(f, label){
+  const k = keyOf(label);
+  if (f.keys) return f.keys.has(k);
+  if (f.off && f.off.has(k)) return false;
+  const m = hasAny(label, f.terms);
+  return f.mode === 'out' ? !m : m;
+}
+let queryMode = 'in';   // búsqueda global: 'in' contiene · 'out' excluye
 function passes(a, exceptKey){
   if (!$('#showInactive').checked && a.activo === false) return false;
-  for (const c of COLS){ if (c.k===exceptKey) continue; const f=filters[c.k]; if (f && !f.has(keyOf(cellVal(a,c)))) return false; }
-  if (query){ const q=norm(query); if (!COLS.some(c => norm(cellVal(a,c)).includes(q))) return false; }
+  for (const c of COLS){ if (c.k===exceptKey) continue; const f=filters[c.k]; if (f && !ruleMatch(f, cellVal(a,c))) return false; }
+  const qt = termsOf(query);
+  if (qt.length){ const m = COLS.some(c => hasAny(cellVal(a,c), qt)); if (queryMode==='out' ? m : !m) return false; }
   return true;
 }
 function visibleRows(){
@@ -151,7 +164,10 @@ function renderTable(){
   else if (!rows.length){ em.innerHTML = '<b>Ninguna acción coincide con los filtros</b>Borra o ajusta los filtros para ver más filas.'; em.hidden=false; }
   else em.hidden = true;
   // chips
-  const chips = COLS.filter(c=>filters[c.k]).map(c=>`<span class="chip">${esc(c.t)}: ${filters[c.k].size} valor${filters[c.k].size===1?'':'es'}<button type="button" data-clear="${c.k}" aria-label="Quitar filtro">×</button></span>`);
+  const chips = COLS.filter(c=>filters[c.k]).map(c=>{ const f=filters[c.k];
+    const txt = f.keys ? `${f.keys.size} valor${f.keys.size===1?'':'es'}` : `${f.mode==='out'?'no contiene':'contiene'} “${f.raw}”`;
+    return `<span class="chip${f.mode==='out'?' out':''}">${esc(c.t)}: ${esc(txt)}<button type="button" data-clear="${c.k}" aria-label="Quitar filtro">×</button></span>`; });
+  if (query) chips.push(`<span class="chip${queryMode==='out'?' out':''}">Búsqueda: ${queryMode==='out'?'excluye':'contiene'} “${esc(query)}”<button type="button" data-clear="__q" aria-label="Quitar búsqueda">×</button></span>`);
   $('#chips').innerHTML = chips.join('');
   $('#btnClear').hidden = !chips.length && !query && !sort.k;
 }
@@ -167,31 +183,48 @@ function openFilter(colKey, btn){
   for (const a of base){ const v=cellVal(a,c), k=keyOf(v); if(!map.has(k)) map.set(k,{k,label:v,n:0}); map.get(k).n++; }
   const items = [...map.values()].sort((x,y)=> x.label===BLANK?1 : y.label===BLANK?-1 : (c.num ? (parseFloat(x.label)||0)-(parseFloat(y.label)||0) : c.sortv ? collator.compare(x.label.split('/').reverse().join(''), y.label.split('/').reverse().join('')) : collator.compare(x.label,y.label)));
   const cur = filters[colKey];
-  const checked = new Set(items.filter(i=>!cur || cur.has(i.k)).map(i=>i.k));
+  let mode = cur && cur.mode ? cur.mode : 'in';
+  const checked = new Set(items.filter(i=>!cur || cur.keys ? (!cur || cur.keys.has(i.k)) : !(cur.off && cur.off.has(i.k))).map(i=>i.k));
   pop = document.createElement('div'); pop.className='pop'; pop.setAttribute('role','dialog');
   pop.innerHTML = `<div class="sorts">
       <button type="button" data-s="1" class="${sort.k===colKey&&sort.dir>0?'cur':''}">Ordenar de A a Z</button>
       <button type="button" data-s="-1" class="${sort.k===colKey&&sort.dir<0?'cur':''}">Ordenar de Z a A</button>
       <button type="button" data-s="clear" ${filters[colKey]?'':'disabled'}>Borrar filtro de “${esc(c.t)}”</button></div>
-    <div class="fsearch"><input type="search" id="popq" placeholder="Buscar" autocomplete="off"></div>
+    <div class="fsearch"><input type="search" id="popq" placeholder="Buscar (varios: RMD, LM)" autocomplete="off">
+      <div class="fmode" role="group" aria-label="Tipo de filtro"><button type="button" data-m="in">Contiene</button><button type="button" data-m="out">No contiene</button></div>
+      <div class="hint" style="margin-top:4px">Escribe un término y elige <b>No contiene</b> para omitirlo.</div></div>
     <div class="flist" id="flist"></div>
     <div class="fact"><button type="button" class="btn" data-a="cancel">Cancelar</button><button type="button" class="btn primary" data-a="ok">Aceptar</button></div>`;
   document.body.appendChild(pop);
   const list = pop.querySelector('#flist'), qi = pop.querySelector('#popq');
-  const shown = () => { const q=norm(qi.value); return items.filter(i=>!q || norm(i.label).includes(q)); };
+  if (cur && cur.terms) qi.value = cur.raw;
+  const shown = () => { const t=termsOf(qi.value); if (!t.length) return items; return items.filter(i => mode==='out' ? !hasAny(i.label,t) : hasAny(i.label,t)); };
+  const modeBtns = pop.querySelectorAll('[data-m]');
+  const paintMode = () => modeBtns.forEach(b => b.classList.toggle('on', b.dataset.m===mode));
   function draw(){
+    paintMode();
     const vis = shown(); const allOn = vis.length && vis.every(i=>checked.has(i.k));
-    list.innerHTML = `<label><input type="checkbox" data-all ${allOn?'checked':''}><span><b>(Seleccionar todo${qi.value?' lo buscado':''})</b></span></label>` +
+    const lbl = !qi.value ? '(Seleccionar todo)' : mode==='out' ? '(Seleccionar todo menos lo buscado)' : '(Seleccionar todo lo buscado)';
+    list.innerHTML = `<label><input type="checkbox" data-all ${allOn?'checked':''}><span><b>${lbl}</b></span></label>` +
       vis.map((i,ix)=>`<label title="${esc(i.label)}"><input type="checkbox" data-i="${ix}" ${checked.has(i.k)?'checked':''}><span>${esc(i.label)}</span><em>${i.n}</em></label>`).join('');
     list.onchange = e => { const t=e.target; if (t.dataset.all!==undefined){ vis.forEach(i=> t.checked?checked.add(i.k):checked.delete(i.k)); } else { const it=vis[+t.dataset.i]; t.checked?checked.add(it.k):checked.delete(it.k); } draw(); };
   }
-  draw(); qi.oninput = draw;
+  draw(); qi.oninput = () => { shown().forEach(i=>checked.add(i.k)); draw(); };
+  qi.onkeydown = e => { if (e.key==='Enter'){ e.preventDefault(); pop.querySelector('[data-a="ok"]').click(); } };
   pop.onclick = e => {
+    const mb = e.target.closest('[data-m]'); if (mb){ mode = mb.dataset.m; shown().forEach(i=>checked.add(i.k)); draw(); qi.focus(); return; }
     const s = e.target.closest('[data-s]'), a = e.target.closest('[data-a]');
     if (s){ if (s.dataset.s==='clear'){ delete filters[colKey]; } else { sort = {k:colKey, dir:+s.dataset.s}; } closePop(); renderTable(); }
     if (a){ if (a.dataset.a==='ok'){
-        let sel = qi.value ? new Set(shown().filter(i=>checked.has(i.k)).map(i=>i.k)) : new Set(checked);
-        if (!qi.value && sel.size===items.length) delete filters[colKey]; else filters[colKey]=sel;
+        const terms = termsOf(qi.value);
+        if (terms.length){
+          // Regla de texto: sigue aplicando aunque lleguen datos nuevos al importar
+          const off = new Set(shown().filter(i=>!checked.has(i.k)).map(i=>i.k));
+          filters[colKey] = {mode, terms, raw:qi.value.trim(), off};
+        } else {
+          const sel = new Set(checked);
+          if (sel.size===items.length) delete filters[colKey]; else filters[colKey]={keys:sel};
+        }
         renderTable(); }
       closePop(); }
   };
@@ -262,10 +295,11 @@ function parseCC(ab){
   }
   return out;
 }
-async function importFile(file){
+async function importFile(file){ return importBuffer(await file.arrayBuffer(), file.name, false); }
+async function importBuffer(ab, sourceName, silent){
   try{
-    notice('Leyendo '+file.name+'…');
-    const rows = parseCC(await file.arrayBuffer());
+    if (!silent) notice('Leyendo '+sourceName+'…');
+    const rows = parseCC(ab);
     if (!rows.length) throw new Error('El archivo no tiene acciones.');
     // Mismo código + acción repetido en el Excel: se conserva la primera fila
     const seen = new Set(), uniq = rows.filter(r=>{ const k=r.codigo_cc+'|'+r.num_accion; if(seen.has(k)) return false; seen.add(k); return true; });
@@ -277,8 +311,9 @@ async function importFile(file){
     await DB.setInactive(gone);
     await reload();
     const nuevos = saved.filter(s=>!before.has(s.codigo_cc+'|'+s.num_accion)).length;
-    notice(`Importadas ${saved.length} acciones de “${file.name}”: ${nuevos} nuevas, ${saved.length-nuevos} actualizadas${gone.length?`, ${gone.length} ya no figuran (ocultas)`:''}.`, 'ok');
-  } catch(err){ console.error(err); notice('No se pudo importar: '+(err.message||err), 'err'); }
+    if (!silent) notice(`Importadas ${saved.length} acciones de “${sourceName}”: ${nuevos} nuevas, ${saved.length-nuevos} actualizadas${gone.length?`, ${gone.length} ya no figuran (ocultas)`:''}.`, 'ok');
+    return {total:saved.length, nuevos, gone:gone.length};
+  } catch(err){ console.error(err); notice('No se pudo importar '+sourceName+': '+(err.message||err), 'err'); throw err; }
 }
 
 /* ---------- Carga ---------- */
@@ -288,8 +323,13 @@ async function reload(){
   evid = new Map();
   for (const x of e){ if(!evid.has(x.accion_id)) evid.set(x.accion_id, []); evid.get(x.accion_id).push({...x}); }
   evid.forEach(l=>l.sort((p,q)=>p.orden-q.orden));
-  if (current) current = acciones.find(x=>x.id===current.id) || null;
+  if (current){
+    const keep = {seccion:current.seccion, anexo:current.anexo, texto_accion:current.texto_accion, planta:current.planta, por_pagina:current.por_pagina};
+    current = acciones.find(x=>x.id===current.id) || null;
+    if (current) Object.assign(current, keep);
+  }
   renderTable();
+  if (current && !$('#drawer').hidden) refreshDrawer(false);
 }
 
 /* ============================================================
@@ -679,8 +719,9 @@ $('#btnDownload').addEventListener('click', async () => {
 /* ---------- Eventos ---------- */
 $('#thead').addEventListener('click', e => { const b=e.target.closest('.fbtn'); if (b) openFilter(b.dataset.col, b); });
 $('#tbody').addEventListener('click', e => { const tr=e.target.closest('tr[data-id]'); if (tr) openDrawer(tr.dataset.id); });
-$('#chips').addEventListener('click', e => { const b=e.target.closest('[data-clear]'); if (b){ delete filters[b.dataset.clear]; renderTable(); } });
+$('#chips').addEventListener('click', e => { const b=e.target.closest('[data-clear]'); if (!b) return; if (b.dataset.clear==='__q'){ query=''; $('#q').value=''; } else delete filters[b.dataset.clear]; renderTable(); });
 $('#btnClear').addEventListener('click', () => { filters={}; sort={k:null,dir:1}; query=''; $('#q').value=''; renderTable(); });
+$('#qMode').addEventListener('click', () => { queryMode = queryMode==='in' ? 'out' : 'in'; const b=$('#qMode'); b.classList.toggle('on', queryMode==='out'); b.setAttribute('aria-pressed', queryMode==='out'); b.textContent = queryMode==='out' ? 'Excluye' : 'Contiene'; renderTable(); });
 $('#q').addEventListener('input', debounce(e => { query=e.target.value.trim(); renderTable(); }, 150));
 $('#showInactive').addEventListener('change', renderTable);
 $('#btnImport').addEventListener('click', () => $('#fileImport').click());

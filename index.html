@@ -40,6 +40,7 @@ button{cursor:pointer}
 .brand{display:flex;flex-direction:column;min-width:0}
 .brand b{font-size:17px;letter-spacing:.01em}
 .brand span{color:var(--muted);font-size:12.5px}
+.ver{font:500 11px var(--mono);color:var(--muted);border:1px solid var(--line-strong);border-radius:99px;padding:1px 7px;margin-left:8px;vertical-align:2px;white-space:nowrap}
 .code-tag{font-family:var(--mono);font-size:11.5px;background:var(--accent);color:var(--accent-fg);padding:2px 6px;border-radius:3px;margin-right:8px;vertical-align:2px}
 .tools{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-left:auto}
 .search{position:relative}
@@ -60,6 +61,13 @@ button{cursor:pointer}
 .status-bar strong{color:var(--fg)}
 .chips{display:flex;flex-wrap:wrap;gap:6px}
 .chip{display:inline-flex;align-items:center;gap:6px;background:var(--info-weak);color:var(--info);border-radius:99px;padding:2px 4px 2px 10px;font-size:12.5px;font-weight:500}
+.chip.out{background:var(--accent-weak);color:var(--accent)}
+.qmode.on{background:var(--accent-weak);border-color:var(--accent);color:var(--accent)}
+.fmode{display:flex;margin-top:6px;border:1px solid var(--line-strong);border-radius:5px;overflow:hidden}
+.fmode button{flex:1;border:0;background:var(--surface);padding:5px 6px;font-size:12.5px;font-weight:500}
+.fmode button+button{border-left:1px solid var(--line-strong)}
+.fmode button.on{background:var(--info);color:#fff}
+.fmode button[data-m="out"].on{background:var(--accent)}
 .chip button{border:0;background:transparent;color:inherit;width:20px;height:20px;border-radius:50%;line-height:1}
 .chip button:hover{background:rgba(0,0,0,.08)}
 .toggle{display:inline-flex;gap:6px;align-items:center;cursor:pointer}
@@ -190,13 +198,14 @@ table.grid{border-collapse:separate;border-spacing:0;width:100%;min-width:1180px
 
 <header class="top">
   <div class="brand">
-    <b><span class="code-tag">FASC-205-03</span>Evidencia visual · Controles de cambio</b>
+    <b><span class="code-tag">FASC-205-03</span>Evidencia visual · Controles de cambio <span class="ver">v5 · filtro inverso</span></b>
     <span>Selecciona una acción, pega las imágenes y descarga el formato listo para imprimir.</span>
   </div>
   <div class="tools">
     <span id="mode" class="mode"></span>
     <label class="search" for="q"><svg viewBox="0 0 24 24" fill="none" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
-      <input id="q" type="search" placeholder="Buscar en todas las columnas" autocomplete="off"></label>
+      <input id="q" type="search" placeholder="Buscar (varios: RMD, LM)" autocomplete="off"></label>
+    <button class="btn qmode" id="qMode" type="button" aria-pressed="false" title="Alterna entre mostrar u omitir lo buscado">Contiene</button>
     <button class="btn" id="btnImport" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v12m0 0-4-4m4 4 4-4M4 17v3h16v-3"/></svg>Importar Excel de CC</button>
     <input id="fileImport" type="file" accept=".xlsx,.xls" hidden>
   </div>
@@ -284,7 +293,7 @@ table.grid{border-collapse:separate;border-spacing:0;width:100%;min-width:1180px
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
-<script src="config.js?v=2"></script>
-<script src="app.js?v=3"></script>
+<script src="config.js?v=5"></script>
+<script src="app.js?v=5"></script>
 </body>
 </html>
