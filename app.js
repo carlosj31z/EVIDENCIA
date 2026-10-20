@@ -58,7 +58,7 @@ const Local = {
   async loadAll(){ return {acciones:this.rows, evidencias:this.ev}; },
   async upsertAcciones(rows){
     return rows.map(r => { let ex=this.rows.find(x=>x.codigo_cc===r.codigo_cc && x.num_accion===r.num_accion);
-      if (ex) Object.assign(ex, r); else { ex={id:uid(), planta:2, anexo:'-', seccion:null, texto_accion:null, por_pagina:null, generado_at:null, ...r}; this.rows.push(ex); }
+      if (ex) Object.assign(ex, r); else { ex={id:uid(), planta:2, anexo:'-', seccion:null, texto_accion:null, por_pagina:null, generado_at:null, evidencia_cargada:false, ...r}; this.rows.push(ex); }
       return {...ex}; });
   },
   async setInactive(ids){ this.rows.forEach(r=>{ if(ids.includes(r.id)) r.activo=false; }); },
@@ -83,7 +83,7 @@ const thumbURL = new Map();   // path -> objectURL
 
 /* ---------- Columnas ---------- */
 const BLANK = '(Vacías)';
-const evState = a => a.generado_at ? 'Descargado' : ((evid.get(a.id)||[]).length ? 'Con imágenes' : 'Sin imágenes');
+const evState = a => a.evidencia_cargada ? 'Evidencia cargada' : ((evid.get(a.id)||[]).length ? 'Con imágenes' : 'Sin imágenes');
 const COLS = [
   {k:'codigo_cc', t:'Código CC', cls:'mono'},
   {k:'num_accion', t:'N° acción', num:true, cls:'mono'},
@@ -100,7 +100,7 @@ const cellVal = (a,c) => { const v = c.get ? c.get(a) : a[c.k]; const s = clean(
 const keyOf = s => String(s).toLowerCase().trim();
 function pillClass(v){
   const s = norm(v);
-  if (/REALIZADO|DESCARGADO|CERRADO/.test(s)) return 'p-ok';
+  if (/REALIZADO|CARGADA|CERRADO/.test(s)) return 'p-ok';
   if (/VENCIDO|ANULAR/.test(s)) return 'p-bad';
   if (/PENDIENTE|SIN IMAGENES/.test(s)) return 'p-warn';
   if (/PROCESO|PLAZO|CON IMAGENES/.test(s)) return 'p-info';
@@ -152,7 +152,7 @@ function renderTable(){
   const tb = $('#tbody');
   tb.innerHTML = rows.map(a => '<tr data-id="'+a.id+'" class="'+(a.activo===false?'inactive ':'')+(current&&current.id===a.id?'sel':'')+'">' + COLS.map(c => {
     let v = c.get ? c.get(a) : a[c.k]; v = clean(v);
-    if (c.k==='_ev'){ const n=(evid.get(a.id)||[]).length; return `<td><span class="pill ${pillClass(v)}">${esc(v)}</span>${n?` <span class="hint mono">${n} img</span>`:''}</td>`; }
+    if (c.k==='_ev'){ const n=(evid.get(a.id)||[]).length; return `<td><label class="evchk" title="Marcar como evidencia cargada"><input type="checkbox" data-ev="${a.id}" ${a.evidencia_cargada?'checked':''}><span class="pill ${pillClass(v)}">${esc(v)}</span></label>${n?` <span class="hint mono">${n} img</span>`:''}</td>`; }
     if (c.pill && v) return `<td><span class="pill ${pillClass(v)}">${esc(v)}</span></td>`;
     if (c.k==='descripcion') return `<td class="${c.cls}"><div>${esc(v)}</div></td>`;
     return `<td class="${c.cls||''}">${esc(v).replace(/\n/g,'<br>')}</td>`;
@@ -681,14 +681,14 @@ function closeDrawer(){ $('#scrim').hidden=true; $('#drawer').hidden=true; docum
 function refreshDrawer(fillForm){
   const a = current; if (!a) return;
   $('#dTitle').innerHTML = `<span class="mono">${esc(a.codigo_cc)}</span> · Acción N° ${esc(a.num_accion)}`;
-  $('#dSub').textContent = a.activo===false ? 'Esta acción ya no figura en el último Excel importado.' : (a.generado_at ? 'Formato descargado el '+new Date(a.generado_at).toLocaleString('es-PE') : 'Formato aún no descargado');
+  $('#dSub').textContent = a.activo===false ? 'Esta acción ya no figura en el último Excel importado.' : '';
   $('#meta').innerHTML = [['Descripción', a.descripcion],['Responsable', a.responsable],['Área', a.area],['Fecha', fmtDate(a.fecha)],['Status de acciones', a.status_acciones],['Status', a.status],['Comentario', a.comentario]]
     .map(([k,v])=>`<dt>${k}</dt><dd>${esc(v||'—').replace(/\n/g,'<br>')}</dd>`).join('');
   if (fillForm){
     $('#fSeccion').value = seccionDe(a); $('#fAnexo').value = a.anexo || '-'; $('#fTexto').value = accionTexto(a); $('#fPorPag').value = a.por_pagina || '';
   }
   document.querySelectorAll('#fPlanta button').forEach(b=>b.classList.toggle('on', +b.dataset.v === (+a.planta||2)));
-  $('#fname').textContent = fileName(a);
+  $('#fname').textContent = fileName(a); $('#chkCargada').checked = !!a.evidencia_cargada;
   renderThumbs(); renderPreview();
 }
 const saveField = debounce(async (id, patch) => { try{ await DB.updateAccion(id, patch); } catch(err){ toast('No se pudo guardar el cambio: '+(err.message||err), 5000); } }, 500);
@@ -709,14 +709,22 @@ $('#btnDownload').addEventListener('click', async () => {
     const u = URL.createObjectURL(blob), link = document.createElement('a');
     link.href = u; link.download = fileName(a); document.body.appendChild(link); link.click(); link.remove();
     setTimeout(()=>URL.revokeObjectURL(u), 4000);
-    a.generado_at = new Date().toISOString();
-    await DB.updateAccion(a.id, {generado_at:a.generado_at});
-    refreshDrawer(); renderTable();
   } catch(err){ console.error(err); toast('No se pudo generar el archivo: '+(err.message||err), 6000); }
   btn.disabled = false;
 });
 
 /* ---------- Eventos ---------- */
+async function setCargada(id, val){
+  const a = acciones.find(x=>x.id===id); if (!a) return;
+  const prev = a.evidencia_cargada; a.evidencia_cargada = val;
+  $('#chkCargada').checked = val; renderTable();
+  try{ await DB.updateAccion(id, {evidencia_cargada:val}); }
+  catch(err){ a.evidencia_cargada = prev; renderTable(); if (current&&current.id===id) $('#chkCargada').checked = prev;
+    toast(/evidencia_cargada/.test(err.message||'') ? 'Falta la columna en Supabase: ejecuta el bloque “Evidencia cargada” de supabase/setup.sql' : 'No se pudo guardar: '+(err.message||err), 6000); }
+}
+$('#chkCargada').addEventListener('change', e => { if (current) setCargada(current.id, e.target.checked); });
+$('#tbody').addEventListener('click', e => { if (e.target.closest('.evchk')) e.stopPropagation(); }, true);
+$('#tbody').addEventListener('change', e => { const c=e.target.closest('[data-ev]'); if (c) setCargada(c.dataset.ev, c.checked); });
 $('#thead').addEventListener('click', e => { const b=e.target.closest('.fbtn'); if (b) openFilter(b.dataset.col, b); });
 $('#tbody').addEventListener('click', e => { const tr=e.target.closest('tr[data-id]'); if (tr) openDrawer(tr.dataset.id); });
 $('#chips').addEventListener('click', e => { const b=e.target.closest('[data-clear]'); if (!b) return; if (b.dataset.clear==='__q'){ query=''; $('#q').value=''; } else delete filters[b.dataset.clear]; renderTable(); });
